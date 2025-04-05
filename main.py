@@ -8,7 +8,6 @@ from implement_ZF import implement_ZF
 from implement_DFE import implement_DFE
 from implement_MMSE import implement_MMSE
 from generate_symbols import generate_symbols
-from create_rrc_pulse import create_rrc_pulse
 from calculate_SIR_ZF import calculate_SIR_ZF
 from calculate_SIR_DFE import calculate_SIR_DFE
 from calculate_SIR_MMSE import calculate_SIR_MMSE
@@ -18,22 +17,17 @@ from generate_correlated_noise import generate_correlated_noise
 from calculate_DFE_MMSE_equalizer import calculate_DFE_MMSE_equalizer
 
 
-
 def main():
-
+    # Generate QPSK symbols
     symbols = generate_symbols(num_symbols)
 
-    # # Create RRC pulse
-    #TODO להיסגר על
-    g_rrc = create_rrc_pulse(alpha, span, samples_per_symbol)
-
-    # Create transmitted signal (upsampling + filtering)
+    # Create upsampled symbol sequence
     symbols_upsampled = np.zeros(samples_per_symbol * num_symbols, dtype=complex)
     symbols_upsampled[::samples_per_symbol] = symbols
-    tx_signal = signal.convolve(symbols_upsampled, g_rrc)
 
-    # Pass through channel
-    channel_output = signal.convolve(tx_signal, f_n)
+    # Apply complete system response directly
+    # (f_n already includes TX filter, channel and RX filter effects)
+    rx_signal_noiseless = signal.convolve(symbols_upsampled, f_n)
 
     # Create U matrix from theoretical f[n] values
     U = create_u_matrix(u0, K, col)
@@ -54,8 +48,14 @@ def main():
         Eb_N0 = 10 ** (Eb_N0_dB[i] / 10)
         MFB[i] = qfunc(np.sqrt(SNR_MFB * Eb_N0))
 
-
     # Calculate theoretical bounds
+    theoretical_bound_ZF = np.zeros(len(Eb_N0_dB))
+    theoretical_bound_MMSE = np.zeros(len(Eb_N0_dB))
+    theoretical_bound_DFE = np.zeros(len(Eb_N0_dB))
+    theoretical_bound_ZF_theory = np.zeros(len(Eb_N0_dB))
+    theoretical_bound_MMSE_theory = np.zeros(len(Eb_N0_dB))
+    theoretical_bound_DFE_theory = np.zeros(len(Eb_N0_dB))
+
     for i in range(len(Eb_N0_dB)):
         Eb_N0 = 10 ** (Eb_N0_dB[i] / 10)
         # Bounds using SIR from code
@@ -69,6 +69,11 @@ def main():
         theoretical_bound_DFE_theory[i] = qfunc(np.sqrt(sir_dfe_theory * Eb_N0))
 
     # Loop through signal-to-noise ratio values
+    BER_NoEq = np.zeros(len(Eb_N0_dB))
+    BER_ZF = np.zeros(len(Eb_N0_dB))
+    BER_MMSE = np.zeros(len(Eb_N0_dB))
+    BER_DFE = np.zeros(len(Eb_N0_dB))
+
     for i, Eb_N0_dB_val in enumerate(Eb_N0_dB):
         print(f"Processing Eb/N0 = {Eb_N0_dB_val} dB")
 
@@ -76,19 +81,16 @@ def main():
         Eb_N0 = 10 ** (Eb_N0_dB_val / 10)
         N0 = N0_base / Eb_N0  # Scale noise variance based on Eb/N0
 
-        # תיקון: יצירת רעש עם אוטוקורלציה מתאימה
-        noise = generate_correlated_noise(len(channel_output), 0.4 * N0)
+        # Generate correlated noise with appropriate variance
+        noise = generate_correlated_noise(len(rx_signal_noiseless), 0.4 * N0)
 
-        # Add noise to received signal
-        rx_signal = channel_output + noise
+        # Add noise to noiseless received signal
+        rx_signal = rx_signal_noiseless + noise
 
-        # Pass through receive filter
-        rx_filtered = signal.convolve(rx_signal, g_rrc)
-
-        # Sample at appropriate points (need to handle proper offset)
-        offset = samples_per_symbol // 2  # For example, half-symbol offset
-        rx_sampled = rx_filtered[
-                     span * samples_per_symbol + offset:-span * samples_per_symbol + offset:samples_per_symbol]
+        # Sample at appropriate points (every samples_per_symbol samples)
+        # Need to account for filter delay and proper alignment
+        delay = (len(f_n) - 1) // 2  # Approximate filter delay
+        rx_sampled = rx_signal[delay::samples_per_symbol]
         rx_sampled = rx_sampled[:num_symbols]  # Truncate to original symbol length
 
         # Apply different equalizers
@@ -124,9 +126,14 @@ def main():
                      np.sum(np.sign(np.imag(symbols[:len(decisions_DFE)])) != np.sign(np.imag(decisions_DFE)))
         BER_DFE[i] = errors_DFE / (2 * len(decisions_DFE))
 
-
     # Plot error probability results
     plt.figure(figsize=(12, 8))
+
+    # Add simulation results
+    plt.semilogy(Eb_N0_dB, BER_NoEq, 'mo-', linewidth=2, label='No Equalizer')
+    plt.semilogy(Eb_N0_dB, BER_ZF, 'bo-', linewidth=2, label='ZF-LE (Simulation)')
+    plt.semilogy(Eb_N0_dB, BER_MMSE, 'go-', linewidth=2, label='MMSE-LE (Simulation)')
+    plt.semilogy(Eb_N0_dB, BER_DFE, 'ko-', linewidth=2, label='MMSE-DFE (Simulation)')
 
     # Add theoretical bounds based on SIR from code
     plt.semilogy(Eb_N0_dB, theoretical_bound_ZF, 'b--', linewidth=1, label='ZF-LE (Code SIR)')
@@ -163,6 +170,7 @@ def main():
     print(f"MMSE-LE (Theory SIR): {theoretical_bound_MMSE_theory[5]:.6f}")
     print(f"MMSE-DFE (Theory SIR): {theoretical_bound_DFE_theory[5]:.6f}")
     print(f"Matched Filter Bound: {MFB[5]:.6f}")
+
 
 if __name__ == "__main__":
     main()
