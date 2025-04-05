@@ -24,6 +24,7 @@ def main():
     symbols = generate_symbols(num_symbols)
 
     # # Create RRC pulse
+    #TODO להיסגר על
     g_rrc = create_rrc_pulse(alpha, span, samples_per_symbol)
 
     # Create transmitted signal (upsampling + filtering)
