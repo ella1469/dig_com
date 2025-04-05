@@ -1,11 +1,10 @@
 import numpy as np
+from params import *
 
 def calculate_MMSE_equalizer(U, noise_variance=0.4):
     """
     Calculate MMSE equalizer coefficients
     """
-    # Select the column vector corresponding to the desired symbol
-    u_0 = U[:, 2]  # The third column corresponds to b[n]
 
     # Symbol variance (normalized to 1)
     sigma_b_squared = 1.0
@@ -17,7 +16,7 @@ def calculate_MMSE_equalizer(U, noise_variance=0.4):
     R = sigma_b_squared * np.dot(U, U.T.conj()) + C_w
 
     # Calculate p = sigma_b^2 * u_0
-    p = sigma_b_squared * u_0
+    p = sigma_b_squared * u0
 
     # Calculate c_MMSE = R^(-1) * p
     h_MMSE = np.dot(np.linalg.inv(R), p)

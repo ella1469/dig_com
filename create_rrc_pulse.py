@@ -1,5 +1,7 @@
 import numpy as np
-
+import matplotlib
+import matplotlib.pyplot as plt
+matplotlib.use('TkAgg')
 
 def create_rrc_pulse(beta, span, sps):
     """
@@ -30,3 +32,24 @@ def create_rrc_pulse(beta, span, sps):
 
     # Normalize energy
     return rrc / np.sqrt(np.sum(rrc ** 2))
+
+
+
+# if __name__ == "__main__":
+#     # Internal testing
+#     beta = 1  # Roll-off factor
+#     span = 8     # Pulse length in symbol time units
+#     sps = 8      # Samples per symbol
+
+#     # Generate RRC pulse
+#     rrc_pulse = create_rrc_pulse(beta, span, sps)
+
+#     # Plot the pulse
+#     plt.figure(figsize=(10, 6))
+#     plt.plot(rrc_pulse, label=f"RRC Pulse (β={beta}, span={span}, sps={sps})")
+#     plt.title("Root Raised Cosine (RRC) Pulse")
+#     plt.xlabel("Samples")
+#     plt.ylabel("Amplitude")
+#     plt.grid(True)
+#     plt.legend()
+#     plt.show()
