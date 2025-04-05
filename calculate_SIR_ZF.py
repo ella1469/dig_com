@@ -1,12 +1,12 @@
 import numpy as np
+from qfunc import qfunc
 
-
-def calculate_SIR_ZF(h_ZF, U, noise_variance=0.4):
+def calculate_SIR_ZF(c_zf, U, noise_variance=0.4):
     """
     Calculate Signal-to-Interference Ratio for ZF equalizer
 
     Parameters:
-    h_ZF : array_like
+    c_zf : array_like
         Zero-Forcing equalizer coefficients
     U : array_like
         Matrix of signal vectors
@@ -20,7 +20,7 @@ def calculate_SIR_ZF(h_ZF, U, noise_variance=0.4):
     # Create noise covariance matrix
     # In general, this could be any covariance matrix C_w
     # (not just diagonal as in the original implementation)
-    C_w = noise_variance * np.eye(len(h_ZF))
+    C_w = noise_variance * np.eye(len(c_zf))
 
     # For colored noise, C_w would be a full matrix reflecting the correlation structure
     # For example, if we have autocorrelation like in the problem (0.4δ[k]):
@@ -28,12 +28,14 @@ def calculate_SIR_ZF(h_ZF, U, noise_variance=0.4):
 
     # Compute SIR using the general formula: 1 / (c_ZF^H * C_w * c_ZF)
     # This is valid for any noise covariance structure
-    noise_contribution = np.dot(h_ZF.conj().T, np.dot(C_w, h_ZF))
+    noise_contribution = np.dot(c_zf.conj().T, np.dot(C_w, c_zf))
     SIR = 1 / noise_contribution
 
+    P_error = qfunc(np.sqrt(SIR))
+    print(f"Probability of error (P_e) calculated: {P_error:.4f}")
     # For comparison with theoretical value
-    theoretical_SIR = 0.7336
-    print(f"SIR_ZF calculated: {SIR:.4f}")
+    theoretical_SIR = 0.1959 
+
     print(f"SIR_ZF theoretical: {theoretical_SIR:.4f}")
 
-    return SIR
+    return P_error
