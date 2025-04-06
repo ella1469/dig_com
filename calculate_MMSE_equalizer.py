@@ -19,12 +19,11 @@ def calculate_MMSE_equalizer(U, noise_variance=0.4):
     p = sigma_b_squared * u0
 
     # Calculate c_MMSE = R^(-1) * p
-    h_MMSE = np.dot(np.linalg.inv(R), p)
+    c_MMSE = np.dot(np.linalg.inv(R), p)
 
-    # בדיקת התוצאה לעומת הערך התיאורטי המצופה
     theoretical_mmse = np.array([-0.09298, -0.05692, -0.24757, -0.10603, 0.43381, -0.22538, 0.15261, -0.11904])
-    print(f"MMSE equalizer calculated: {h_MMSE}")
+    print(f"MMSE equalizer calculated: {c_MMSE}")
     print(f"MMSE equalizer theoretical: {theoretical_mmse}")
-    print(f"Difference: {np.linalg.norm(h_MMSE - theoretical_mmse)}")
+    print(f"Difference: {np.linalg.norm(c_MMSE - theoretical_mmse)}")
 
-    return h_MMSE
+    return c_MMSE

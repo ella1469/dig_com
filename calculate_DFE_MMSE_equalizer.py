@@ -19,18 +19,17 @@ def calculate_DFE_MMSE_equalizer(U, noise_variance=0.4):
     R = sigma_b_squared * np.dot(U_f, U_f.T.conj()) + C_w
 
     # Calculate c_FF = R^(-1) * u_0
-    h_FF_DFE = np.dot(np.linalg.inv(R), u0)
+    c_FF_DFE = np.dot(np.linalg.inv(R), u0)
 
     # Calculate c_FB = -c_FF^H * U_p
-    h_FB_DFE = -np.dot(h_FF_DFE.conj().T, U_p)
+    c_FB_DFE = -np.dot(c_FF_DFE.conj().T, U_p)
 
-    # בדיקת התוצאה לעומת הערך התיאורטי המצופה
     theoretical_ff_dfe = np.array([0, 0, -0.468, 0, 0.3386, -0.175, 0.119, -0.0928])
     theoretical_fb_dfe = np.array([0,  0.468])
-    print(f"DFE-FF equalizer calculated: {h_FF_DFE}")
+    print(f"DFE-FF equalizer calculated: {c_FF_DFE}")
     print(f"DFE-FF equalizer theoretical: {theoretical_ff_dfe}")
-    print(f"Difference FF: {np.linalg.norm(h_FF_DFE - theoretical_ff_dfe)}")
-    print(f"DFE-FB equalizer calculated: {h_FB_DFE}")
+    print(f"Difference FF: {np.linalg.norm(c_FF_DFE - theoretical_ff_dfe)}")
+    print(f"DFE-FB equalizer calculated: {c_FB_DFE}")
     print(f"DFE-FB equalizer theoretical: {theoretical_fb_dfe}")
 
-    return h_FF_DFE, h_FB_DFE
+    return c_FF_DFE, c_FB_DFE
