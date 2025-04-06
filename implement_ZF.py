@@ -1,6 +1,6 @@
 import numpy as np
 
-def implement_ZF(input_signal, h_ZF, window_size=8):
+def implement_ZF(input_signal, c_zf, window_size=8):
     """
     Implementation of Zero Forcing equalizer
     """
@@ -11,6 +11,6 @@ def implement_ZF(input_signal, h_ZF, window_size=8):
     # Apply the ZF filter using sliding window
     for i in range(output_length):
         window = input_signal[i:i + window_size]
-        output[i] = np.dot(h_ZF.conj(), window)
+        output[i] = np.dot(c_zf.conj(), window)
 
     return output

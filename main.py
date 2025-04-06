@@ -20,15 +20,9 @@ from calculate_DFE_MMSE_equalizer import calculate_DFE_MMSE_equalizer
 def main():
     # Generate QPSK symbols
     symbols = generate_symbols(num_symbols)
-
-<<<<<<< HEAD
-    # # Create RRC pulse
-    g_rrc = create_rrc_pulse(alpha, span, samples_per_symbol)
-
-    # Create transmitted signal (upsampling + filtering)
-=======
+    symbols[0] = 0
+    
     # Create upsampled symbol sequence
->>>>>>> 289eae4 (test)
     symbols_upsampled = np.zeros(samples_per_symbol * num_symbols, dtype=complex)
     symbols_upsampled[::samples_per_symbol] = symbols
 
@@ -49,31 +43,26 @@ def main():
     sir_mmse = calculate_SIR_MMSE(c_mmse, U, N0_base)
     sir_dfe = calculate_SIR_DFE(c_ff_dfe, U[:, 2:], N0_base)
 
+
     # Matched filter bound (calculated in part A)
+    #TODO: chek this 4 lines???
     MFB = np.zeros(len(Eb_N0_dB))
     for i in range(len(Eb_N0_dB)):
         Eb_N0 = 10 ** (Eb_N0_dB[i] / 10)
         MFB[i] = qfunc(np.sqrt(SNR_MFB * Eb_N0))
 
-    # Calculate theoretical bounds
-    theoretical_bound_ZF = np.zeros(len(Eb_N0_dB))
-    theoretical_bound_MMSE = np.zeros(len(Eb_N0_dB))
-    theoretical_bound_DFE = np.zeros(len(Eb_N0_dB))
-    theoretical_bound_ZF_theory = np.zeros(len(Eb_N0_dB))
-    theoretical_bound_MMSE_theory = np.zeros(len(Eb_N0_dB))
-    theoretical_bound_DFE_theory = np.zeros(len(Eb_N0_dB))
 
     for i in range(len(Eb_N0_dB)):
         Eb_N0 = 10 ** (Eb_N0_dB[i] / 10)
         # Bounds using SIR from code
-        theoretical_bound_ZF[i] = qfunc(np.sqrt(sir_zf * Eb_N0))
-        theoretical_bound_MMSE[i] = qfunc(np.sqrt(sir_mmse * Eb_N0))
-        theoretical_bound_DFE[i] = qfunc(np.sqrt(sir_dfe * Eb_N0))
+        theoretical_bound_ZF[i] = qfunc(np.sqrt(sir_zf))
+        theoretical_bound_MMSE[i] = qfunc(np.sqrt(sir_mmse))
+        theoretical_bound_DFE[i] = qfunc(np.sqrt(sir_dfe))
 
         # Bounds using SIR from theoretical analysis (part A)
-        theoretical_bound_ZF_theory[i] = qfunc(np.sqrt(sir_zf_theory * Eb_N0))
-        theoretical_bound_MMSE_theory[i] = qfunc(np.sqrt(sir_mmse_theory * Eb_N0))
-        theoretical_bound_DFE_theory[i] = qfunc(np.sqrt(sir_dfe_theory * Eb_N0))
+        theoretical_bound_ZF_theory[i] = qfunc(np.sqrt(sir_zf_theory))
+        theoretical_bound_MMSE_theory[i] = qfunc(np.sqrt(sir_mmse_theory))
+        theoretical_bound_DFE_theory[i] = qfunc(np.sqrt(sir_dfe_theory))
 
     # Loop through signal-to-noise ratio values
     BER_NoEq = np.zeros(len(Eb_N0_dB))
@@ -82,14 +71,23 @@ def main():
     BER_DFE = np.zeros(len(Eb_N0_dB))
 
     for i, Eb_N0_dB_val in enumerate(Eb_N0_dB):
-        print(f"Processing Eb/N0 = {Eb_N0_dB_val} dB")
 
         # Calculate required noise power according to Eb/N0
-        Eb_N0 = 10 ** (Eb_N0_dB_val / 10)
-        N0 = N0_base / Eb_N0  # Scale noise variance based on Eb/N0
+        Eb_N0_lin = 10 ** (Eb_N0_dB_val / 10)
 
-        # Generate correlated noise with appropriate variance
-        noise = generate_correlated_noise(len(rx_signal_noiseless), 0.4 * N0)
+        E_s_recived = np.linalg.norm(u0) ** 2  # Received energy per symbol
+
+        E_b = E_s_recived / 2  # Energy per bit (QPSK)
+
+        N0 = E_b / Eb_N0_lin
+
+        C_w = N0 * np.eye(U.shape[0])
+
+        c_mmse = calculate_MMSE_equalizer(U, N0)
+
+        c_ff_dfe, c_fb_dfe = calculate_DFE_MMSE_equalizer(U, N0)
+
+        noise = np.sqrt(N0 / 2) * (np.random.randn(len(rx_signal_noiseless)) + 1j * np.random.randn(len(rx_signal_noiseless)))
 
         # Add noise to noiseless received signal
         rx_signal = rx_signal_noiseless + noise
@@ -97,6 +95,7 @@ def main():
         # Sample at appropriate points (every samples_per_symbol samples)
         # Need to account for filter delay and proper alignment
         delay = (len(f_n) - 1) // 2  # Approximate filter delay
+        #TODO check why taking every 2nd sample
         rx_sampled = rx_signal[delay::samples_per_symbol]
         rx_sampled = rx_sampled[:num_symbols]  # Truncate to original symbol length
 
@@ -109,10 +108,12 @@ def main():
         decisions_ZF = np.sign(np.real(eq_ZF)) / np.sqrt(2) + 1j * np.sign(np.imag(eq_ZF)) / np.sqrt(2)
 
         # MMSE-LE using matrix approach
+        c_mmse = calculate_MMSE_equalizer(U, N0)
         eq_MMSE = implement_MMSE(rx_sampled, c_mmse)
         decisions_MMSE = np.sign(np.real(eq_MMSE)) / np.sqrt(2) + 1j * np.sign(np.imag(eq_MMSE)) / np.sqrt(2)
 
         # MMSE-DFE using matrix approach
+        c_ff_dfe, c_fb_dfe = calculate_DFE_MMSE_equalizer(U, N0)
         eq_DFE = implement_DFE(rx_sampled, c_ff_dfe, c_fb_dfe)
         decisions_DFE = np.sign(np.real(eq_DFE)) / np.sqrt(2) + 1j * np.sign(np.imag(eq_DFE)) / np.sqrt(2)
 

@@ -45,6 +45,9 @@ sir_zf_theory = 0.7336  # Value from part A
 sir_mmse_theory = 2.3277  # Value from part A
 sir_dfe_theory = 3.2686  # Value from part A
 
+P_error_sir_zf_theory = 0.1959  # Value from part A
+P_error_sir_mmse_theory = 0.0635  # Value from part A
+P_error_sir_dfe_theory = 0.0353  # Value from part A
 
 #TODO: verify correctens of this val
 # Matched filter bound (calculated in part A)
