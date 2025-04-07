@@ -20,7 +20,7 @@ from calculate_DFE_MMSE_equalizer import calculate_DFE_MMSE_equalizer
 def main():
     # Generate QPSK symbols
     symbols = generate_symbols(num_symbols)
-    symbols[0] = 0
+    #symbols[0] = 0
     
     # Create upsampled symbol sequence
     symbols_upsampled = np.zeros(samples_per_symbol * num_symbols, dtype=complex)
@@ -70,114 +70,6 @@ def main():
     BER_MMSE = np.zeros(len(Eb_N0_dB))
     BER_DFE = np.zeros(len(Eb_N0_dB))
 
-    for i, Eb_N0_dB_val in enumerate(Eb_N0_dB):
-
-        # Calculate required noise power according to Eb/N0
-        Eb_N0_lin = 10 ** (Eb_N0_dB_val / 10)
-
-        E_s_recived = np.linalg.norm(u0) ** 2  # Received energy per symbol
-
-        E_b = E_s_recived / 2  # Energy per bit (QPSK)
-
-        N0 = E_b / Eb_N0_lin
-
-        C_w = N0 * np.eye(U.shape[0])
-
-        c_mmse = calculate_MMSE_equalizer(U, N0)
-
-        c_ff_dfe, c_fb_dfe = calculate_DFE_MMSE_equalizer(U, N0)
-
-        noise = np.sqrt(N0 / 2) * (np.random.randn(len(rx_signal_noiseless)) + 1j * np.random.randn(len(rx_signal_noiseless)))
-
-        # Add noise to noiseless received signal
-        rx_signal = rx_signal_noiseless + noise
-
-        # Sample at appropriate points (every samples_per_symbol samples)
-        # Need to account for filter delay and proper alignment
-        delay = (len(f_n) - 1) // 2  # Approximate filter delay
-        #TODO check why taking every 2nd sample
-        rx_sampled = rx_signal[delay::samples_per_symbol]
-        rx_sampled = rx_sampled[:num_symbols]  # Truncate to original symbol length
-
-        # Apply different equalizers
-        # No equalizer - direct decision on samples
-        decisions_NoEq = np.sign(np.real(rx_sampled)) / np.sqrt(2) + 1j * np.sign(np.imag(rx_sampled)) / np.sqrt(2)
-
-        # ZF-LE using matrix approach
-        eq_ZF = implement_ZF(rx_sampled, c_zf)
-        decisions_ZF = np.sign(np.real(eq_ZF)) / np.sqrt(2) + 1j * np.sign(np.imag(eq_ZF)) / np.sqrt(2)
-
-        # MMSE-LE using matrix approach
-        c_mmse = calculate_MMSE_equalizer(U, N0)
-        eq_MMSE = implement_MMSE(rx_sampled, c_mmse)
-        decisions_MMSE = np.sign(np.real(eq_MMSE)) / np.sqrt(2) + 1j * np.sign(np.imag(eq_MMSE)) / np.sqrt(2)
-
-        # MMSE-DFE using matrix approach
-        c_ff_dfe, c_fb_dfe = calculate_DFE_MMSE_equalizer(U, N0)
-        eq_DFE = implement_DFE(rx_sampled, c_ff_dfe, c_fb_dfe)
-        decisions_DFE = np.sign(np.real(eq_DFE)) / np.sqrt(2) + 1j * np.sign(np.imag(eq_DFE)) / np.sqrt(2)
-
-        # Calculate error probability (for QPSK check the components separately)
-        errors_NoEq = np.sum(np.sign(np.real(symbols[:len(decisions_NoEq)])) != np.sign(np.real(decisions_NoEq))) + \
-                      np.sum(np.sign(np.imag(symbols[:len(decisions_NoEq)])) != np.sign(np.imag(decisions_NoEq)))
-        BER_NoEq[i] = errors_NoEq / (2 * len(decisions_NoEq))
-
-        errors_ZF = np.sum(np.sign(np.real(symbols[:len(decisions_ZF)])) != np.sign(np.real(decisions_ZF))) + \
-                    np.sum(np.sign(np.imag(symbols[:len(decisions_ZF)])) != np.sign(np.imag(decisions_ZF)))
-        BER_ZF[i] = errors_ZF / (2 * len(decisions_ZF))
-
-        errors_MMSE = np.sum(np.sign(np.real(symbols[:len(decisions_MMSE)])) != np.sign(np.real(decisions_MMSE))) + \
-                      np.sum(np.sign(np.imag(symbols[:len(decisions_MMSE)])) != np.sign(np.imag(decisions_MMSE)))
-        BER_MMSE[i] = errors_MMSE / (2 * len(decisions_MMSE))
-
-        errors_DFE = np.sum(np.sign(np.real(symbols[:len(decisions_DFE)])) != np.sign(np.real(decisions_DFE))) + \
-                     np.sum(np.sign(np.imag(symbols[:len(decisions_DFE)])) != np.sign(np.imag(decisions_DFE)))
-        BER_DFE[i] = errors_DFE / (2 * len(decisions_DFE))
-
-    # Plot error probability results
-    plt.figure(figsize=(12, 8))
-
-    # Add simulation results
-    plt.semilogy(Eb_N0_dB, BER_NoEq, 'mo-', linewidth=2, label='No Equalizer')
-    plt.semilogy(Eb_N0_dB, BER_ZF, 'bo-', linewidth=2, label='ZF-LE (Simulation)')
-    plt.semilogy(Eb_N0_dB, BER_MMSE, 'go-', linewidth=2, label='MMSE-LE (Simulation)')
-    plt.semilogy(Eb_N0_dB, BER_DFE, 'ko-', linewidth=2, label='MMSE-DFE (Simulation)')
-
-    # Add theoretical bounds based on SIR from code
-    plt.semilogy(Eb_N0_dB, theoretical_bound_ZF, 'b--', linewidth=1, label='ZF-LE (Code SIR)')
-    plt.semilogy(Eb_N0_dB, theoretical_bound_MMSE, 'g--', linewidth=1, label='MMSE-LE (Code SIR)')
-    plt.semilogy(Eb_N0_dB, theoretical_bound_DFE, 'k--', linewidth=1, label='MMSE-DFE (Code SIR)')
-
-    # Add theoretical bounds based on SIR from theory (part A)
-    plt.semilogy(Eb_N0_dB, theoretical_bound_ZF_theory, 'b-.', linewidth=1, label='ZF-LE (Theory SIR)')
-    plt.semilogy(Eb_N0_dB, theoretical_bound_MMSE_theory, 'g-.', linewidth=1, label='MMSE-LE (Theory SIR)')
-    plt.semilogy(Eb_N0_dB, theoretical_bound_DFE_theory, 'k-.', linewidth=1, label='MMSE-DFE (Theory SIR)')
-
-    # Add matched filter bound
-    plt.semilogy(Eb_N0_dB, MFB, 'r--', linewidth=1, label='Matched Filter Bound')
-
-    # Add titles and labels
-    plt.grid(True)
-    plt.xlabel('Eb/N0 [dB]')
-    plt.ylabel('Bit Error Rate (BER)')
-    plt.title('Performance of Different Equalizers')
-    plt.legend(loc='lower left')
-    plt.savefig('equalizer_performance_with_theory.png', dpi=300)
-    plt.show()
-
-    # Print result summary for both code-based and theory-based bounds
-    print(f"Result summary for Eb/N0 = 10 dB:")
-    print(f"No Equalizer: {BER_NoEq[5]:.6f}")
-    print(f"ZF-LE (Simulation): {BER_ZF[5]:.6f}")
-    print(f"MMSE-LE (Simulation): {BER_MMSE[5]:.6f}")
-    print(f"MMSE-DFE (Simulation): {BER_DFE[5]:.6f}")
-    print(f"ZF-LE (Code SIR): {theoretical_bound_ZF[5]:.6f}")
-    print(f"MMSE-LE (Code SIR): {theoretical_bound_MMSE[5]:.6f}")
-    print(f"MMSE-DFE (Code SIR): {theoretical_bound_DFE[5]:.6f}")
-    print(f"ZF-LE (Theory SIR): {theoretical_bound_ZF_theory[5]:.6f}")
-    print(f"MMSE-LE (Theory SIR): {theoretical_bound_MMSE_theory[5]:.6f}")
-    print(f"MMSE-DFE (Theory SIR): {theoretical_bound_DFE_theory[5]:.6f}")
-    print(f"Matched Filter Bound: {MFB[5]:.6f}")
 
 
 if __name__ == "__main__":
