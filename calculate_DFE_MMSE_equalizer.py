@@ -1,7 +1,7 @@
 import numpy as np
 from params import *
 
-def calculate_DFE_MMSE_equalizer(U, noise_variance=0.4):
+def calculate_DFE_MMSE_equalizer(U, noise_variance):
     """
     Calculate MMSE-DFE equalizer coefficients
     """

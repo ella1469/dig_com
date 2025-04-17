@@ -117,7 +117,7 @@ def main():
 
         # MMSE-DFE using matrix approach
         c_ff_dfe, c_fb_dfe = calculate_DFE_MMSE_equalizer(U, N0)
-        eq_DFE = implement_DFE(rx_sampled, c_ff_dfe, c_fb_dfe)
+        eq_DFE = implement_DFE(rx_signal_Noise, c_ff_dfe, c_fb_dfe, rx_sampled)
         decisions_DFE = np.sign(np.real(eq_DFE)) / np.sqrt(2) + 1j * np.sign(np.imag(eq_DFE)) / np.sqrt(2)
 
         # Calculate error probability (for QPSK check the components separately)
@@ -130,11 +130,11 @@ def main():
         BER_ZF[i] = errors_ZF / (2 * len(decisions_ZF))
 
         errors_MMSE = np.sum(np.sign(np.real(symbols[1:len(decisions_MMSE)+1])) != np.sign(np.real(decisions_MMSE))) + \
-                      np.sum(np.sign(np.imag(symbols[1:len(decisions_MMSE)]+1)) != np.sign(np.imag(decisions_MMSE)))
+                      np.sum(np.sign(np.imag(symbols[1:len(decisions_MMSE)+1])) != np.sign(np.imag(decisions_MMSE)))
         BER_MMSE[i] = errors_MMSE / (2 * len(decisions_MMSE))
 
-        errors_DFE = np.sum(np.sign(np.real(symbols[:len(decisions_DFE)])) != np.sign(np.real(decisions_DFE))) + \
-                     np.sum(np.sign(np.imag(symbols[:len(decisions_DFE)])) != np.sign(np.imag(decisions_DFE)))
+        errors_DFE = np.sum(np.sign(np.real(symbols[1:len(decisions_DFE)+1])) != np.sign(np.real(decisions_DFE))) + \
+                     np.sum(np.sign(np.imag(symbols[1:len(decisions_DFE)+1])) != np.sign(np.imag(decisions_DFE)))
         BER_DFE[i] = errors_DFE / (2 * len(decisions_DFE))
 
     # Plot error probability results
@@ -158,7 +158,7 @@ def main():
 
     # Add matched filter bound
     plt.semilogy(Eb_N0_dB, MFB, 'r--', linewidth=1, label='Matched Filter Bound')
-
+    plt.ylim(1e-8, 1)
     # Add titles and labels
     plt.grid(True)
     plt.xlabel('Eb/N0 [dB]')
