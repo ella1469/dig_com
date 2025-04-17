@@ -10,7 +10,7 @@ np.random.seed(ID)
 # Basic system parameters
 T = 1.0  # Symbol time (normalized)
 alpha = 0.6  # Roll-off parameter for RRC pulse
-num_symbols = 200  # Number of symbols to transmit
+num_symbols = 10000  # Number of symbols to transmit
 samples_per_symbol = 2  # Number of samples per symbol
 Ts = T / samples_per_symbol  # Sample time
 K = 8
@@ -21,7 +21,7 @@ f_n = np.array([-0.8, 0, 1, -0.3])  # Channel impulse response
 u0 = np.array([0, 0, -0.8, 0, 1, -0.3, 0, 0])
 
 # Signal-to-noise ratio vector for testing
-Eb_N0_dB = np.arange(-5, 41, 5)  # List of Eb/N0 values in dB
+Eb_N0_dB = np.arange(-5, 40, 5)  # List of Eb/N0 values in dB
 
 # Noise variance calculation
 N0_base = 0.4  # Base noise variance as specified in theory
