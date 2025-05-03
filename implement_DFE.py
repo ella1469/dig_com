@@ -27,7 +27,8 @@ def implement_DFE(rx_signal_Noise, c_FF, c_FB, rx_sampled):
             window = rx_signal_Noise[idx_start:idx_end]
 
             # Apply feedforward filter (similar to MMSE)
-            ff_output = np.complex128(np.dot(c_FF.conj(), window))
+            ff_output = np.dot(c_FF.conj().flatten(), window)
+
             output.append(ff_output)
             # Only apply feedback after we have enough samples
             if i >= 2 and len(c_FB) > 0:
@@ -35,7 +36,7 @@ def implement_DFE(rx_signal_Noise, c_FF, c_FB, rx_sampled):
                 past_signs = np.sign(np.real(output[i-2:i])) + 1j * np.sign(np.imag(output[i-2:i]))
 
                 # Apply feedback filter to past outputs
-                fb_output = np.complex128(np.dot(c_FB, past_signs))
+                fb_output = np.dot(c_FB.flatten(), past_signs)
 
                 # Combine feedforward and feedback outputs
                 output[i] = output[i] + fb_output

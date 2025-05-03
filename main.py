@@ -22,11 +22,11 @@ from scipy import signal
 def main():
     # Generate QPSK symbols
     symbols = generate_symbols(num_symbols)
-    #symbols = [0.707106781186548 + 0.707106781186548j,-0.707106781186548 - 0.707106781186548j,0.707106781186548 + 0.707106781186548j-0.707106781186548 - 0.707106781186548j,0.707106781186548 + 0.707106781186548j]
     symbols = np.insert(symbols, 0, 0)
 
     # Create upsampled symbol sequence
-    symbols_upsampled = np.zeros(samples_per_symbol * num_symbols+1, dtype=complex)
+    # TODO: why add +1
+    symbols_upsampled = np.zeros(samples_per_symbol * num_symbols + 1, dtype=complex)
     symbols_upsampled[::samples_per_symbol] = symbols
 
     # Apply complete system response directly
@@ -49,29 +49,11 @@ def main():
 
     # Matched filter bound (calculated in part A)
     #TODO: chek this 4 lines???
-    MFB = np.zeros(len(Eb_N0_dB))
-    for i in range(len(Eb_N0_dB)):
-        Eb_N0 = 10 ** (Eb_N0_dB[i] / 10)
-        MFB[i] = qfunc(np.sqrt(SNR_MFB * Eb_N0))
 
+    # for i in range(len(Eb_N0_dB)):
+    #     Eb_N0_lin = 10 ** (Eb_N0_dB[i] / 10)
+    #     MFB[i] = qfunc(np.sqrt(SNR_MFB * Eb_N0_lin))
 
-    for i in range(len(Eb_N0_dB)):
-        Eb_N0 = 10 ** (Eb_N0_dB[i] / 10)
-        # Bounds using SIR from code
-        theoretical_bound_ZF[i] = qfunc(np.sqrt(sir_zf))
-        theoretical_bound_MMSE[i] = qfunc(np.sqrt(sir_mmse))
-        theoretical_bound_DFE[i] = qfunc(np.sqrt(sir_dfe))
-
-        # Bounds using SIR from theoretical analysis (part A)
-        theoretical_bound_ZF_theory[i] = qfunc(np.sqrt(sir_zf_theory))
-        theoretical_bound_MMSE_theory[i] = qfunc(np.sqrt(sir_mmse_theory))
-        theoretical_bound_DFE_theory[i] = qfunc(np.sqrt(sir_dfe_theory))
-
-    # Loop through signal-to-noise ratio values
-    BER_NoEq = np.zeros(len(Eb_N0_dB))
-    BER_ZF = np.zeros(len(Eb_N0_dB))
-    BER_MMSE = np.zeros(len(Eb_N0_dB))
-    BER_DFE = np.zeros(len(Eb_N0_dB))
 
     for i, Eb_N0_dB_val in enumerate(Eb_N0_dB):
 
@@ -84,11 +66,14 @@ def main():
 
         N0 = E_b / Eb_N0_lin
 
-        C_w = N0 * np.eye(U.shape[0])
-
         c_mmse = calculate_MMSE_equalizer(U, N0)
 
         c_ff_dfe, c_fb_dfe = calculate_DFE_MMSE_equalizer(U, N0)
+
+        SIR_ZF[i] = calculate_SIR_ZF(c_zf, U, N0)
+        SIR_MMSE[i] = calculate_SIR_MMSE(c_mmse, U, N0)
+        SIR_DFE[i] = calculate_SIR_DFE(c_ff_dfe, U[:, 2:], N0)
+        MFB[i] = qfunc(np.sqrt(2*u_0_norm/N0))
 
         noise = np.sqrt(N0 / 2) * (np.random.randn(len(rx_signal_noiseless)) + 1j * np.random.randn(len(rx_signal_noiseless)))
         #noise=0;
@@ -107,6 +92,7 @@ def main():
         decisions_NoEq = np.sign(np.real(rx_sampled[1:len(rx_sampled)])) / np.sqrt(2) + 1j * np.sign(np.imag(rx_sampled[1:len(rx_sampled)])) / np.sqrt(2)
 
         # ZF-LE using matrix approach
+        #TODO: check this - why use rx_signal_Noise and rx_sampled
         eq_ZF = implement_ZF(rx_signal_Noise, c_zf, rx_sampled)
         decisions_ZF = np.sign(np.real(eq_ZF)) / np.sqrt(2) + 1j * np.sign(np.imag(eq_ZF)) / np.sqrt(2)
 
@@ -146,15 +132,10 @@ def main():
     plt.semilogy(Eb_N0_dB, BER_MMSE, 'go-', linewidth=2, label='MMSE-LE (Simulation)')
     plt.semilogy(Eb_N0_dB, BER_DFE, 'ko-', linewidth=2, label='MMSE-DFE (Simulation)')
 
-    # Add theoretical bounds based on SIR from code
-    plt.semilogy(Eb_N0_dB, theoretical_bound_ZF, 'b--', linewidth=1, label='ZF-LE (Code SIR)')
-    plt.semilogy(Eb_N0_dB, theoretical_bound_MMSE, 'g--', linewidth=1, label='MMSE-LE (Code SIR)')
-    plt.semilogy(Eb_N0_dB, theoretical_bound_DFE, 'k--', linewidth=1, label='MMSE-DFE (Code SIR)')
-
     # Add theoretical bounds based on SIR from theory (part A)
-    plt.semilogy(Eb_N0_dB, theoretical_bound_ZF_theory, 'b-.', linewidth=1, label='ZF-LE (Theory SIR)')
-    plt.semilogy(Eb_N0_dB, theoretical_bound_MMSE_theory, 'g-.', linewidth=1, label='MMSE-LE (Theory SIR)')
-    plt.semilogy(Eb_N0_dB, theoretical_bound_DFE_theory, 'k-.', linewidth=1, label='MMSE-DFE (Theory SIR)')
+    plt.semilogy(Eb_N0_dB, SIR_ZF, 'b-.', linewidth=1, label='ZF-LE (Theory SIR)')
+    plt.semilogy(Eb_N0_dB, SIR_MMSE, 'g-.', linewidth=1, label='MMSE-LE (Theory SIR)')
+    plt.semilogy(Eb_N0_dB, SIR_DFE, 'k-.', linewidth=1, label='MMSE-DFE (Theory SIR)')
 
     # Add matched filter bound
     plt.semilogy(Eb_N0_dB, MFB, 'r--', linewidth=1, label='Matched Filter Bound')
@@ -167,20 +148,6 @@ def main():
     plt.legend(loc='lower left')
     plt.savefig('equalizer_performance_with_theory.png', dpi=300)
     plt.show()
-
-    # Print result summary for both code-based and theory-based bounds
-    print(f"Result summary for Eb/N0 = 10 dB:")
-    print(f"No Equalizer: {BER_NoEq[5]:.6f}")
-    print(f"ZF-LE (Simulation): {BER_ZF[5]:.6f}")
-    print(f"MMSE-LE (Simulation): {BER_MMSE[5]:.6f}")
-    print(f"MMSE-DFE (Simulation): {BER_DFE[5]:.6f}")
-    print(f"ZF-LE (Code SIR): {theoretical_bound_ZF[5]:.6f}")
-    print(f"MMSE-LE (Code SIR): {theoretical_bound_MMSE[5]:.6f}")
-    print(f"MMSE-DFE (Code SIR): {theoretical_bound_DFE[5]:.6f}")
-    print(f"ZF-LE (Theory SIR): {theoretical_bound_ZF_theory[5]:.6f}")
-    print(f"MMSE-LE (Theory SIR): {theoretical_bound_MMSE_theory[5]:.6f}")
-    print(f"MMSE-DFE (Theory SIR): {theoretical_bound_DFE_theory[5]:.6f}")
-    print(f"Matched Filter Bound: {MFB[5]:.6f}")
 
 
 if __name__ == "__main__":

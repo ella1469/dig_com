@@ -21,7 +21,7 @@ f_n = np.array([-0.8, 0, 1, -0.3])  # Channel impulse response
 u0 = np.array([0, 0, -0.8, 0, 1, -0.3, 0, 0])
 
 # Signal-to-noise ratio vector for testing
-Eb_N0_dB = np.arange(-5, 40, 5)  # List of Eb/N0 values in dB
+Eb_N0_dB = np.arange(-5, 45, 5)  # List of Eb/N0 values in dB
 
 # Noise variance calculation
 N0_base = 0.4  # Base noise variance as specified in theory
@@ -35,6 +35,11 @@ BER_NoEq = np.zeros(len(Eb_N0_dB))
 BER_ZF = np.zeros(len(Eb_N0_dB))
 BER_MMSE = np.zeros(len(Eb_N0_dB))
 BER_DFE = np.zeros(len(Eb_N0_dB))
+
+SIR_ZF = np.zeros(len(Eb_N0_dB))
+SIR_MMSE = np.zeros(len(Eb_N0_dB))
+SIR_DFE = np.zeros(len(Eb_N0_dB))
+MFB = np.zeros(len(Eb_N0_dB))
 
 #CONSTANTS
 
@@ -52,14 +57,4 @@ P_error_sir_dfe_theory = 0.0353  # Value from part A
 #TODO: verify correctens of this val
 # Matched filter bound (calculated in part A)
 SNR_MFB = 1.73 / 0.2  # ||u_0||^2 / N_0
-
-
-# Theoretical bounds using SIR values calculated from code
-theoretical_bound_ZF = np.zeros(len(Eb_N0_dB))
-theoretical_bound_MMSE = np.zeros(len(Eb_N0_dB))
-theoretical_bound_DFE = np.zeros(len(Eb_N0_dB))
-
-# Theoretical bounds using SIR values from part A
-theoretical_bound_ZF_theory = np.zeros(len(Eb_N0_dB))
-theoretical_bound_MMSE_theory = np.zeros(len(Eb_N0_dB))
-theoretical_bound_DFE_theory = np.zeros(len(Eb_N0_dB))
+u_0_norm = 1.73  # Norm of u_0
